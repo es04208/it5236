@@ -28,6 +28,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 
 }
 
+
+/* PULL EMAIL FROM THE DATABASE USING GETUSER AND PUT IN VARIABLE TO USE IN THE MAIL FUNCTION BELOW ---------------------------------------
+		$userid = "";
+		$email = "";
+		$sessionid = $_COOKIE['sessionid'];
+		$user = $app->getSessionUser($sessionid, $errors);
+		$userid = $user["userid"];
+		
+		// Attempt to obtain the user information.
+		$user = $app->getUser($userid, $errors);
+			
+		if ($user != NULL){
+			$email = $user['email'];
+		}
+			
+		//email them a one time password
+			$to = $email;
+			$subject = 'Your One Time Password';
+			$emailmessage = "Here is your one time password: " . bin2hex(random_bytes(3));
+			$headers = 'From: webmaster@youfoodjournal.me' . "\r\n" .
+					   'Reply-To: webmaster@yourfoodjournal.me' . "\r\n";
+			mail($to, $subject, $emailmessage, $headers);
+		 //--------------------------------------------------------------------------------------------------------------------------------------------*/
+		 
+		 
 // If someone is attempting to login, process their request
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
@@ -40,9 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 	// Check to see if the login attempt succeeded
 	if ($result == TRUE) {
-
-		// Redirect the user to the topics page on success
-		header("Location: list.php");
+		
+		// Redirect the user to the topics page on success ------------- change to OTPform.php/list.php
+		header("Location: OTPform.php");
 		exit();
 
 	}
@@ -59,9 +84,9 @@ if (isset($_GET['register']) && $_GET['register']== 'success') {
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>russellthackston.me</title>
-	<meta name="description" content="Russell Thackston's personal website for IT 5233">
-	<meta name="author" content="Russell Thackston">
+	<title>Elijah Stall</title>
+	<meta name="description" content="Elijah Stall's personal website for IT 5233">
+	<meta name="author" content="Elijah Stall">
 	<link rel="stylesheet" href="css/style.css">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -77,7 +102,7 @@ if (isset($_GET['register']) && $_GET['register']== 'success') {
 	<?php include('include/messages.php'); ?>
 	
 	<div>
-		<form method="post" action="login.php">
+		<form id="usernameForm" method="post" action="login.php">
 			
 			<input type="text" name="username" id="username" placeholder="Username" value="<?php echo $username; ?>" />
 			<br/>
@@ -85,13 +110,43 @@ if (isset($_GET['register']) && $_GET['register']== 'success') {
 			<input type="password" name="password" id="password" placeholder="Password" value="<?php echo $password; ?>" />
 			<br/>
 
+			<input type="checkbox" name="saveLocal" id="saveLocal" value="saveLocal"> Remember username in local storage
+			<br/>
+
 			<input type="submit" value="Login" name="login" />
 		</form>
 	</div>
-	<a href="register.php">Need to create an account?</a>
+	<a href="register.php">Create an account</a>
 	<br/>
 	<a href="reset.php">Forgot your password?</a>
 	<?php include 'include/footer.php'; ?>
 	<script src="js/site.js"></script>
+	<script>
+function doSubmit(e) {
+	var saveLocal = document.getElementById("saveLocal").checked;
+	if (saveLocal) {
+		console.log("Saving username to local storage");
+		var username = document.getElementById("username").value;
+		localStorage.setItem("username",username);
+	} else {
+		localStorage.removeItem("username");
+	}
+}
+
+function doPageLoad(e) {
+	console.log("Reading username from local/session storage");
+	var usernameLocal = localStorage.getItem("username");
+	var usernameSession = sessionStorage.getItem("username");
+	if (usernameLocal) {
+		document.getElementById("saveLocal").checked = true;
+		document.getElementById("username").value = usernameLocal;
+	}
+}
+
+// Add event listeners for page load and form submit
+window.addEventListener("load", doPageLoad, false)
+document.getElementById("usernameForm").addEventListener("submit", doSubmit, false);
+
+	</script>
 </body>
 </html>
