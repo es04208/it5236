@@ -3,7 +3,6 @@ body {
 	background: url("images/foodbackground.jpg");
 	height: 100%; 
 	background-position: center;
-    
     background-size: cover;
 	background-color: #00ffff;
 }
@@ -11,9 +10,7 @@ body {
 div.nav {
 	float: right;
 	padding: 20px;
-	border: solid;
-	border-color: black;
-	border-radius: 10px;
+	
 	background-color: #e6ffff;
 }
 
@@ -137,4 +134,7 @@ div.newattachmenttype {
 	border-color: black;
 	border-radius: 10px;
 	background-color: #e6ffff;
+	margin: 15px 15px 15px 15px;
+	padding: 15px 15px 15px 15px;
+	float: left;
 }
