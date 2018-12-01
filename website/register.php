@@ -1,5 +1,4 @@
 <?php
-
 // Import the application classes
 require_once('include/classes.php');
 
