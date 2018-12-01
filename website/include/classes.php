@@ -45,6 +45,7 @@ class Application {
         return $dbh;
     }
     
+	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     public function auditlog($context, $message, $priority = 0, $userid = NULL){
         
         // Declare an errors array
@@ -83,7 +84,69 @@ class Application {
         $dbh = NULL;
         
     }
-    
+	
+	/*
+	
+	//CURL version
+	public function auditlog($context, $message, $priority = 0, $userid = NULL){
+        
+        // Declare an errors array
+        $errors = [];
+        
+       $url = "https://zm3y4llvkd.execute-api.us-east-1.amazonaws.com/first_deployment/auditlog";
+			$data = array(
+				'context'=>$context,
+				'message'=>$message,
+				'userid'=>$userid
+			);
+			$data_json = json_encode($data);
+
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($data_json), 'x-api-key: NW5VBdWUMv9uf1UQzMTgv8cgvyHZ08475J8vYfFU'));
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $data_json);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			$response  = curl_exec($ch);
+			$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+			if ($response === FALSE) {
+				$errors[] = "An unexpected failure occurred contacting the web service.";
+			} else {
+
+				if($httpCode == 400) {
+					
+					// JSON was double-encoded, so it needs to be double decoded
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Bad input";
+					}
+
+				} else if($httpCode == 500) {
+
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Server error";
+					}
+
+				} else if($httpCode == 200) {
+
+				}
+
+			}
+			
+			curl_close($ch);
+        
+    }
+	*/
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	
     protected function validateUsername($username, &$errors) {
         if (empty($username)) {
             $errors[] = "Missing username";
@@ -112,6 +175,96 @@ class Application {
             }
     }
     
+    
+    // Registers a new user ---------------------------------------------------------------------------------------------------------------------------------------------------------
+    public function register($username, $password, $email, $registrationcode, &$errors) {
+        
+        $this->auditlog("register", "attempt: $username, $email, $registrationcode");
+        
+        // Validate the user input
+        $this->validateUsername($username, $errors);
+        $this->validatePassword($password, $errors);
+        $this->validateEmail($email, $errors);
+        if (empty($registrationcode)) {
+            $errors[] = "Missing registration code";
+        }
+        
+        // Only try to insert the data into the database if there are no validation errors
+        if (sizeof($errors) == 0) {
+            
+            // Hash the user's password
+            $passwordhash = password_hash($password, PASSWORD_DEFAULT);
+            
+            // Create a new user ID
+            $userid = bin2hex(random_bytes(16));
+
+			$url = "https://zm3y4llvkd.execute-api.us-east-1.amazonaws.com/first_deployment/";
+			$data = array(
+				'userid'=>$userid,
+				'username'=>$username,
+				'passwordHash'=>$passwordhash,
+				'email'=>$email,
+				'registrationcode'=>$registrationcode
+			);
+			$data_json = json_encode($data);
+
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($data_json), 'x-api-key: EbovdZtsrm1oMvFqVHWJS7nmw88IXtlr3TRlB07S'));
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $data_json);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			$response  = curl_exec($ch);
+			$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+			if ($response === FALSE) {
+				$errors[] = "An unexpected failure occurred contacting the web service.";
+			} else {
+
+				if($httpCode == 400) {
+					
+					// JSON was double-encoded, so it needs to be double decoded
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Bad input";
+					}
+
+				} else if($httpCode == 500) {
+
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Server error";
+					}
+
+				} else if($httpCode == 200) {
+
+					$this->sendValidationEmail($userid, $email, $errors);
+
+				}
+
+			}
+			
+			curl_close($ch);
+
+        } else {
+            $this->auditlog("register validation error", $errors);
+        }
+        
+        // Return TRUE if there are no errors, otherwise return FALSE
+        if (sizeof($errors) == 0){
+            return TRUE;
+        } else {
+            return FALSE;
+        }
+    }
+	
+	/*
     // Registers a new user
     public function register($username, $password, $email, $registrationcode, &$errors) {
         
@@ -248,8 +401,10 @@ class Application {
             return FALSE;
         }
     }
-    
-    // Send an email to validate the address
+
+    */
+
+    // Send an email to validate the address ---------------------------------------------------------------------------------------------------------------------------------------
     protected function sendValidationEmail($userid, $email, &$errors) {
         
         // Connect to the database
@@ -282,11 +437,11 @@ class Application {
             $pageLink = str_replace("register.php", "login.php", $pageLink);
             $to      = $email;
             $subject = 'Confirm your email address';
-            $message = "A request has been made to create an account at https://russellthackston.me for this email address. ".
+            $message = "A request has been made to create an account at https://elijahstall.me for this email address. ".
                 "If you did not make this request, please ignore this message. No other action is necessary. ".
                 "To confirm this address, please click the following link: $pageLink?id=$validationid";
-            $headers = 'From: webmaster@russellthackston.me' . "\r\n" .
-                'Reply-To: webmaster@russellthackston.me' . "\r\n";
+            $headers = 'From: webmaster@elijahstall.me' . "\r\n" .
+                'Reply-To: webmaster@elijahstall.me' . "\r\n";
             
             mail($to, $subject, $message, $headers);
             
@@ -298,8 +453,67 @@ class Application {
         $dbh = NULL;
         
     }
+	
+	/*
+	//CURL version
+	 protected function sendValidationEmail($userid, $email, &$errors) {
+        
+     $url = " https://zm3y4llvkd.execute-api.us-east-1.amazonaws.com/first_deployment/sendvalidationemail";
+			$data = array(
+				'userid'=>$userid,
+				'email'=>$email
+			);
+			$data_json = json_encode($data);
+
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($data_json), 'x-api-key: Jyq2Sc8v1L7gWekTZov4m8kVPVtyN7429sJysdl3'));
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $data_json);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			$response  = curl_exec($ch);
+			$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+			if ($response === FALSE) {
+				$errors[] = "An unexpected failure occurred contacting the web service.";
+			} else {
+
+				if($httpCode == 400) {
+					
+					// JSON was double-encoded, so it needs to be double decoded
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Bad input";
+					}
+
+				} else if($httpCode == 500) {
+
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Server error";
+					}
+
+				} else if($httpCode == 200) {
+
+				$this->auditlog("sendValidationEmail", "web service response => " . $response);
+		        $this->auditlog("sendValidationEmail", "success");
+
+				}
+
+			}
+			
+			curl_close($ch);
+        
+    }
+	*/
     
-    // Send an email to validate the address
+    // Send an email to validate the address ----------------------------------------------------------------------------------------------------------------------------------------
     public function processEmailValidation($validationid, &$errors) {
         
         $success = FALSE;
@@ -383,8 +597,8 @@ class Application {
         return $success;
         
     }
-    
-    // Creates a new session in the database for the specified user
+	
+    // Creates a new session in the database for the specified user ---------------------------------------------------------------------------------------------------------------
     public function newSession($userid, &$errors, $registrationcode = NULL) {
         
         // Check for a valid userid
@@ -442,7 +656,139 @@ class Application {
         }
         
     }
+   
+   /*
+   //CURL version
+    public function newSession($userid, &$errors, $registrationcode = NULL) {
+        
+        // Check for a valid userid
+        if (empty($userid)) {
+            $errors[] = "Missing userid";
+            $this->auditlog("session", "missing userid");
+        }
+        
+        // Only try to query the data into the database if there are no validation errors
+        if (sizeof($errors) == 0) {
+            
+            if ($registrationcode == NULL) {
+                $regs = $this->getUserRegistrations($userid, $errors);
+                $reg = $regs[0];
+                $this->auditlog("session", "logging in user with first reg code $reg");
+                $registrationcode = $regs[0];
+            }
+            
+            // Create a new session ID
+            $sessionid = bin2hex(random_bytes(25));
+			
+			 $url = " https://zm3y4llvkd.execute-api.us-east-1.amazonaws.com/first_deployment/newsession";
+			$data = array(
+				'sessionid'=>$sessionid,
+				'userid'=>$userid,
+				'registrationcode'=>$registrationcode
+			);
+			$data_json = json_encode($data);
+
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($data_json), 'x-api-key: 9gNsQm7FVT13SvicDUR2l26xLhUlEIJw4DS6go47'));
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $data_json);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			$response  = curl_exec($ch);
+			$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+			if ($response === FALSE) {
+				$errors[] = "An unexpected failure occurred contacting the web service.";
+			} else {
+
+				if($httpCode == 400) {
+					
+					// JSON was double-encoded, so it needs to be double decoded
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Bad input";
+					}
+
+				} else if($httpCode == 500) {
+
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Server error";
+					}
+
+				} else if($httpCode == 200) {
+
+				$this->auditlog("newSession", "web service response => " . $response);
+		        $this->auditlog("newSession", "success");
+
+				}
+
+			}
+			
+			curl_close($ch);
+			
+            return $sessionid;
+                
+		}
+	}
+   */
+   
+	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   public function getUserRegistrations($userid, &$errors) {
+        
+        // Assume an empty list of regs
+        $regs = array();
+        
+		$url = "https://zm3y4llvkd.execute-api.us-east-1.amazonaws.com/first_deployment/getUserRegistrations?userid=" . $userid;
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($data_json), 'x-api-key: qr60XIgsUD4gemVBMS9EZ2heaWdfUrUe25D80WtV'));
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		$response  = curl_exec($ch);
+		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		
+		if ($response === FALSE) {
+			$errors[] = "An unexpected failure occurred contacting the web service.";
+		} else {
+			if($httpCode == 400) {
+				
+				// JSON was double-encoded, so it needs to be double decoded
+				$errorsList = json_decode(json_decode($response))->errors;
+				foreach ($errorsList as $err) {
+					$errors[] = $err;
+				}
+				if (sizeof($errors) == 0) {
+					$errors[] = "Bad input";
+				}
+			} else if($httpCode == 500) {
+				$errorsList = json_decode(json_decode($response))->errors;
+				foreach ($errorsList as $err) {
+					$errors[] = $err;
+				}
+				if (sizeof($errors) == 0) {
+					$errors[] = "Server error";
+				}
+			} else if($httpCode == 200) {
+	            $this->auditlog("getUserRegistrations", "web service response => " . $response);
+				$regs = json_decode($response)->userregistrations;
+		        $this->auditlog("getUserRegistrations", "success");
+			}
+		}
+		
+		curl_close($ch);
+        // Return the list of users
+        return $regs;
+    }
     
+/*
+	//CURL version
     public function getUserRegistrations($userid, &$errors) {
         
         // Assume an empty list of regs
@@ -482,8 +828,9 @@ class Application {
         // Return the list of users
         return $regs;
     }
+*/
     
-    // Updates a single user in the database and will return the $errors array listing any errors encountered
+    // Updates a single user in the database and will return the $errors array listing any errors encountered -----------------------------------------------------------------------
     public function updateUserPassword($userid, $password, &$errors) {
         
         // Validate the user input
@@ -536,8 +883,73 @@ class Application {
         }
     }
     
+	/*
+	//CURL version
+	public function updateUserPassword($userid, $password, &$errors) {
+        
+        // Validate the user input
+        if (empty($userid)) {
+            $errors[] = "Missing userid";
+        }
+        $this->validatePassword($password, $errors);
+        
+        if(sizeof($errors) == 0) {
+			
+			$url = "https://zm3y4llvkd.execute-api.us-east-1.amazonaws.com/first_deployment/updateUserPassword?userid=" . $userid;
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($data_json), 'x-api-key: eO04xp04024RzpzCbJGRG9IflqIEw98L1KD3cTJk'));
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			$response  = curl_exec($ch);
+			$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			
+			if ($response === FALSE) {
+				$errors[] = "An unexpected failure occurred contacting the web service.";
+			} else {
+				if($httpCode == 400) {
+					
+					// JSON was double-encoded, so it needs to be double decoded
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Bad input";
+					}
+				} else if($httpCode == 500) {
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Server error";
+					}
+				} else if($httpCode == 200) {
+					$this->auditlog("updateUserPassword", "web service response => " . $response);
+					$this->auditlog("updateUserPassword", "success");
+				}
+			}
+			
+			curl_close($ch);
+			
+		} else {
+            
+            $this->auditlog("updateUserPassword validation error", $errors);
+            
+        }
+        
+        // Return TRUE if there are no errors, otherwise return FALSE
+        if (sizeof($errors) == 0){
+            return TRUE;
+        } else {
+            return FALSE;
+        }
+    }
+	*/
+	
     // Removes the specified password reset entry in the database, as well as any expired ones
-    // Does not retrun errors, as the user should not be informed of these problems
+    // Does not retrun errors, as the user should not be informed of these problems -------------------------------------------------------------------------------------------------
     protected function clearPasswordResetRecords($passwordresetid) {
         
         $dbh = $this->getConnection();
@@ -554,8 +966,52 @@ class Application {
         $dbh = NULL;
         
     }
+	
+	/*
+	//CURL version
+	protected function clearPasswordResetRecords($passwordresetid) {
+	
+	$url = " https://zm3y4llvkd.execute-api.us-east-1.amazonaws.com/first_deployment/clearPasswordResetRecords?passwordresetid=" . $passwordresetid;
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($data_json), 'x-api-key: G5mBtotSGz8zdJjxd8iBn69Qzd546aPiKnY6MRca'));
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			$response  = curl_exec($ch);
+			$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			
+			if ($response === FALSE) {
+				$errors[] = "An unexpected failure occurred contacting the web service.";
+			} else {
+				if($httpCode == 400) {
+					
+					// JSON was double-encoded, so it needs to be double decoded
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Bad input";
+					}
+				} else if($httpCode == 500) {
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Server error";
+					}
+				} else if($httpCode == 200) {
+					$this->auditlog("clearPasswordResetRecords", "web service response => " . $response);
+					$this->auditlog("clearPasswordResetRecords", "success");
+				}
+			}
+			
+			curl_close($ch);
+	
+	*/
     
-    // Retrieves an existing session from the database for the specified user
+    // Retrieves an existing session from the database for the specified user -------------------------------------------------------------------------------------------------------
     public function getSessionUser(&$errors, $suppressLog=FALSE) {
         
         // Get the session id cookie from the browser
@@ -606,8 +1062,67 @@ class Application {
         return $user;
         
     }
+	
+	/*
+	//CURL version
+	public function getSessionUser(&$errors, $suppressLog=FALSE) {
+        
+        // Get the session id cookie from the browser
+        $sessionid = NULL;
+        $user = NULL;
+        
+        // Check for a valid session ID
+        if (isset($_COOKIE['sessionid'])) {
+            
+            $sessionid = $_COOKIE['sessionid'];
+			
+			$url = "https://zm3y4llvkd.execute-api.us-east-1.amazonaws.com/first_deployment/getSessionUser?usersessionid=" . $usersessionid;
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($data_json), 'x-api-key: Ujg0g4mTwF1pYCj6IQC9WNnQqCXsypu13HS0haq4'));
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			$response  = curl_exec($ch);
+			$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			
+			if ($response === FALSE) {
+				$errors[] = "An unexpected failure occurred contacting the web service.";
+			} else {
+				if($httpCode == 400) {
+					
+					// JSON was double-encoded, so it needs to be double decoded
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Bad input";
+					}
+				} else if($httpCode == 500) {
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Server error";
+					}
+				} else if($httpCode == 200) {
+					$this->auditlog("getSessionUser", "web service response => " . $response);
+
+					$this->auditlog("getSessionUser", "success");
+				}
+			}
+			
+			curl_close($ch);
+	
+		}
+        
+        return $user;
+        
+    }
+	*/
     
-    // Retrieves an existing session from the database for the specified user
+    // Retrieves an existing session from the database for the specified user -------------------------------------------------------------------------------------------------------
     public function isAdmin(&$errors, $userid) {
         
         // Check for a valid user ID
@@ -646,8 +1161,61 @@ class Application {
             
         }
     }
+	
+	/*
+	//CURL version
+	public function isAdmin(&$errors, $userid) {
+        
+        // Check for a valid user ID
+        if (empty($userid)) {
+            $errors[] = "Missing userid";
+            return FALSE;
+        }
+		
+			$url = " https://zm3y4llvkd.execute-api.us-east-1.amazonaws.com/first_deployment/isAdmin?userid=" . $userid;
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($data_json), 'x-api-key: 683poXK9aK7A1FCZRmCza1xlvod1QBQZ48uVcTat'));
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			$response  = curl_exec($ch);
+			$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			
+			if ($response === FALSE) {
+				$errors[] = "An unexpected failure occurred contacting the web service.";
+			} else {
+				if($httpCode == 400) {
+					
+					// JSON was double-encoded, so it needs to be double decoded
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Bad input";
+					}
+				} else if($httpCode == 500) {
+					$errorsList = json_decode(json_decode($response))->errors;
+					foreach ($errorsList as $err) {
+						$errors[] = $err;
+					}
+					if (sizeof($errors) == 0) {
+						$errors[] = "Server error";
+					}
+				} else if($httpCode == 200) {
+					$this->auditlog("isAdmin", "web service response => " . $response);
+					$this->auditlog("isAdmin", "success");
+				}
+			}
+			
+			curl_close($ch);
+			
+			return $isadmin == 1;
+            
+    }
+	*/
     
-    // Logs in an existing user and will return the $errors array listing any errors encountered
+    // Logs in an existing user and will return the $errors array listing any errors encountered ------------------------------------------------------------------------------------
     public function login($username, $password, &$errors) {
         
         $this->debug("Login attempted");
@@ -668,7 +1236,7 @@ class Application {
             $dbh = $this->getConnection();
             
             // Construct a SQL statement to perform the insert operation
-            $sql = "SELECT userid, passwordhash, emailvalidated FROM users " .
+            $sql = "SELECT userid, passwordhash, emailvalidated, email FROM users " .
                 "WHERE username = :username";
             
             // Run the SQL select and capture the result code
@@ -711,6 +1279,7 @@ class Application {
                     
                     // Create a new session for this user ID in the database
                     $userid = $row['userid'];
+					$email = $row['email'];
                     $this->newSession($userid, $errors);
                     $this->auditlog("login", "success: $username, $userid");
                     
@@ -734,7 +1303,7 @@ class Application {
         }
     }
     
-    // Logs out the current user based on session ID
+    // Logs out the current user based on session ID -------------------------------------------------------------------------------------------------------------------------------
     public function logout() {
         
         $sessionid = $_COOKIE['sessionid'];
@@ -776,7 +1345,7 @@ class Application {
         
     }
     
-    // Checks for logged in user and redirects to login if not found with "page=protected" indicator in URL.
+    // Checks for logged in user and redirects to login if not found with "page=protected" indicator in URL. -----------------------------------------------------------------------
     public function protectPage(&$errors, $isAdmin = FALSE) {
         
         // Get the user ID from the session record
@@ -818,7 +1387,7 @@ class Application {
         
     }
     
-    // Get a list of things from the database and will return the $errors array listing any errors encountered
+    // Get a list of things from the database and will return the $errors array listing any errors encountered ---------------------------------------------------------------------
     public function getThings(&$errors) {
         
         // Assume an empty list of things
@@ -862,7 +1431,7 @@ class Application {
         
     }
     
-    // Get a single thing from the database and will return the $errors array listing any errors encountered
+    // Get a single thing from the database and will return the $errors array listing any errors encountered -----------------------------------------------------------------------
     public function getThing($thingid, &$errors) {
         
         // Assume no thing exists for this thing id
@@ -922,7 +1491,7 @@ class Application {
         
     }
     
-    // Get a list of comments from the database
+    // Get a list of comments from the database ------------------------------------------------------------------------------------------------------------------------------------
     public function getComments($thingid, &$errors) {
         
         // Assume an empty list of comments
@@ -978,7 +1547,7 @@ class Application {
         
     }
     
-    // Handles the saving of uploaded attachments and the creation of a corresponding record in the attachments table.
+    // Handles the saving of uploaded attachments and the creation of a corresponding record in the attachments table. -------------------------------------------------------------
     public function saveAttachment($dbh, $attachment, &$errors) {
         
         $attachmentid = NULL;
@@ -1058,7 +1627,7 @@ class Application {
         
     }
     
-    // Adds a new thing to the database
+    // Adds a new thing to the database --------------------------------------------------------------------------------------------------------------------------------------------
     public function addThing($name, $attachment, &$errors) {
         
         // Get the user id from the session
@@ -1130,7 +1699,7 @@ class Application {
         }
     }
     
-    // Adds a new comment to the database
+    // Adds a new comment to the database ------------------------------------------------------------------------------------------------------------------------------------------
     public function addComment($text, $thingid, $attachment, &$errors) {
         
         // Get the user id from the session
@@ -1202,7 +1771,7 @@ class Application {
         }
     }
     
-    // Get a list of users from the database and will return the $errors array listing any errors encountered
+    // Get a list of users from the database and will return the $errors array listing any errors encountered ----------------------------------------------------------------------
     public function getUsers(&$errors) {
         
         // Assume an empty list of topics
@@ -1242,7 +1811,7 @@ class Application {
         
     }
     
-    // Gets a single user from database and will return the $errors array listing any errors encountered
+    // Gets a single user from database and will return the $errors array listing any errors encountered ---------------------------------------------------------------------------
     public function getUser($userid, &$errors) {
         
         // Assume no user exists for this user id
@@ -1324,7 +1893,7 @@ class Application {
     }
     
     
-    // Updates a single user in the database and will return the $errors array listing any errors encountered
+    // Updates a single user in the database and will return the $errors array listing any errors encountered ----------------------------------------------------------------------
     public function updateUser($userid, $username, $email, $password, $isadminDB, &$errors) {
         
         // Assume no user exists for this user id
@@ -1424,7 +1993,7 @@ class Application {
         }
     }
     
-    // Validates a provided username or email address and sends a password reset email
+    // Validates a provided username or email address and sends a password reset email ---------------------------------------------------------------------------------------------
     public function passwordReset($usernameOrEmail, &$errors) {
         
         // Check for a valid username/email
@@ -1509,7 +2078,7 @@ class Application {
         
     }
     
-    // Validates a provided username or email address and sends a password reset email
+    // Validates a provided username or email address and sends a password reset email ---------------------------------------------------------------------------------------------
     public function updatePassword($password, $passwordresetid, &$errors) {
         
         // Check for a valid username/email
@@ -1560,7 +2129,7 @@ class Application {
         return file_get_contents($name);
     }
     
-    // Get a list of users from the database and will return the $errors array listing any errors encountered
+    // Get a list of users from the database and will return the $errors array listing any errors encountered ----------------------------------------------------------------------
     public function getAttachmentTypes(&$errors) {
         
         // Assume an empty list of topics
@@ -1600,7 +2169,7 @@ class Application {
         
     }
     
-    // Creates a new session in the database for the specified user
+    // Creates a new session in the database for the specified user ----------------------------------------------------------------------------------------------------------------
     public function newAttachmentType($name, $extension, &$errors) {
         
         $attachmenttypeid = NULL;
@@ -1654,6 +2223,4 @@ class Application {
     }
     
 }
-
-
 ?>
