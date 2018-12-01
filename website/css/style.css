@@ -1,10 +1,20 @@
 body {
 	margin: 15px 15px 15px 15px;
+	background: url("images/foodbackground.jpg");
+	height: 100%; 
+	background-position: center;
+    
+    background-size: cover;
+	background-color: #00ffff;
 }
 
 div.nav {
 	float: right;
 	padding: 20px;
+	border: solid;
+	border-color: black;
+	border-radius: 10px;
+	background-color: #e6ffff;
 }
 
 ul.things {
@@ -121,4 +131,10 @@ div.message {
 
 div.newattachmenttype {
 	background-color: #ccffcc;
+}
+.background{
+	border: solid;
+	border-color: black;
+	border-radius: 10px;
+	background-color: #e6ffff;
 }
