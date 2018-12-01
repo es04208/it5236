@@ -23,14 +23,16 @@ $errors = array();
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-	<?php include 'include/header.php'; ?>
-	
-	<h2>Food journal</h2>
-	<p class="background">
-		This is a food journal to help you track your calories and food eaten throughout the weeks so you can keep track of your diets or maybe just what you eat in general!<br><br><a href="login.php">Create an account</a> or proceed directly to the 
-		<a href="login.php">login page</a>.
-	</p>
-	<?php include 'include/footer.php'; ?>
+	<div class="background">
+		<?php include 'include/header.php'; ?>
+		
+		<h2>Food journal</h2>
+		<p>
+			This is a food journal to help you track your calories and food eaten throughout the weeks so you can keep track of your diets or maybe just what you eat in general!<br><br><a href="login.php">Create an account</a> or proceed directly to the 
+			<a href="login.php">login page</a>.
+		</p>
+		<?php include 'include/footer.php'; ?>
+	</div>
 	<script src="js/site.js"></script>
 </body>
 </html>

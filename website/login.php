@@ -95,11 +95,16 @@ if (isset($_GET['register']) && $_GET['register']== 'success') {
 	2. Display Login form (sticky):  Username and Password -->
 
 <body>
-	<?php include 'include/header.php'; ?>
 
+	<div class="background">
+	<?php include 'include/header.php'; ?>
+	
+	
+	
 	<h2>Login</h2>
 
 	<?php include('include/messages.php'); ?>
+	
 	
 	<div>
 		<form id="usernameForm" method="post" action="login.php">
@@ -120,6 +125,7 @@ if (isset($_GET['register']) && $_GET['register']== 'success') {
 	<br/>
 	<a href="reset.php">Forgot your password?</a>
 	<?php include 'include/footer.php'; ?>
+	</div>
 	<script src="js/site.js"></script>
 	<script>
 function doSubmit(e) {
