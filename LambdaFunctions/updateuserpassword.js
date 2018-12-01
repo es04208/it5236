@@ -8,7 +8,6 @@ function formatErrorResponse(code, errs) {
 		errors : errs
 	});
 }
-
 exports.handler = (event, context, callback) => {
 	//instruct the function to return as soon as the callback is invoked
 	context.callbackWaitsForEmptyEventLoop = false;
